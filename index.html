@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
     <!-- Game Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.3">
 </head>
 <body>
     <div id="game-app">
@@ -84,13 +84,21 @@
             <!-- Theater Combat Stage -->
             <div id="battle-theater" class="battle-theater">
                 <!-- Hero Pod (Left) -->
-                <div class="combatant-pod">
+                <div class="combatant-pod hero-pod">
                     <div class="combatant-name-plate">Sir Cedric</div>
                     <div id="hero-hearts-row" class="hearts-row">
                         <!-- Dynamic Hearts -->
                     </div>
                     <div class="combatant-sprite-box">
-                        <img id="hero-sprite-img" src="assets/sprites/hero_knight.jpg" alt="Hero Knight" class="sprite-img hero-idle">
+                        <div class="combatant-portrait-frame">
+                            <img id="hero-sprite-img" src="assets/sprites/hero_knight.jpg" alt="Hero Knight" class="sprite-img hero-idle">
+                            <div class="portrait-ambient-glow"></div>
+                        </div>
+                        <!-- Grounding Stage Pedestal & Floor Shadow -->
+                        <div class="combatant-pedestal">
+                            <div class="pedestal-rune-ring"></div>
+                            <div class="pedestal-floor-shadow"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -103,13 +111,21 @@
                 <div id="battle-effects-layer" class="battle-effects-layer"></div>
 
                 <!-- Monster Pod (Right) -->
-                <div class="combatant-pod">
+                <div class="combatant-pod monster-pod">
                     <div id="monster-name-plate" class="combatant-name-plate">Slimey the Goo</div>
                     <div id="monster-hearts-row" class="hearts-row">
                         <!-- Dynamic Hearts -->
                     </div>
                     <div class="combatant-sprite-box">
-                        <img id="monster-sprite-img" src="assets/sprites/monster_slime.jpg" alt="Enemy Monster" class="sprite-img monster-idle">
+                        <div class="combatant-portrait-frame monster-frame">
+                            <img id="monster-sprite-img" src="assets/sprites/monster_slime.jpg" alt="Enemy Monster" class="sprite-img monster-idle">
+                            <div class="portrait-ambient-glow monster-glow"></div>
+                        </div>
+                        <!-- Grounding Stage Pedestal & Floor Shadow -->
+                        <div class="combatant-pedestal">
+                            <div class="pedestal-rune-ring monster-ring"></div>
+                            <div class="pedestal-floor-shadow"></div>
+                        </div>
                     </div>
                 </div>
             </div>
