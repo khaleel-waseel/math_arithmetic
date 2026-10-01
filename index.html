@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ Math Knight Adventures - Kids Arithmetic RPG</title>
+    <meta name="description" content="A fun Bookworm Adventures-style Math RPG game where kids battle monsters by practicing addition, addition with carry, subtraction, and subtraction with borrow.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- Game Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-app">
+        <!-- =========================================================
+             SCREEN 1: TITLE SCREEN
+             ========================================================= -->
+        <div id="screen-title" class="screen active">
+            <div class="title-banner">
+                <h1>⚔️ Math Knight</h1>
+                <p>The Grand Arithmetic Adventure</p>
+            </div>
+
+            <img src="assets/sprites/hero_knight.jpg" alt="Sir Cedric the Math Knight" class="hero-preview-avatar">
+
+            <div class="menu-buttons-group">
+                <button id="btn-start-game" class="btn-gold">
+                    <span>⚔️</span> START ADVENTURE
+                </button>
+                <button id="btn-open-settings" class="btn-blue">
+                    <span>⚙️</span> PARENT & SETTINGS
+                </button>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             SCREEN 2: MAP / BOOK SELECTION SCREEN
+             ========================================================= -->
+        <div id="screen-map" class="screen">
+            <div class="map-header">
+                <button id="btn-back-to-title" class="btn-blue" style="padding: 8px 16px; font-size: 0.95rem;">
+                    ◀ TITLE
+                </button>
+                <div class="hero-stats-badge">
+                    <div class="stat-pill">
+                        <span>⭐</span> <span id="stat-star-gems">0</span> Gems
+                    </div>
+                    <div class="stat-pill">
+                        <span>🛡️</span> <span id="stat-player-level">Lv. 1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="books-grid" id="books-grid-container">
+                <!-- Dynamically injected Book Cards from GAME_DATA -->
+            </div>
+        </div>
+
+        <!-- =========================================================
+             SCREEN 3: BATTLE ARENA SCREEN (Bookworm Theater)
+             ========================================================= -->
+        <div id="screen-battle" class="screen">
+            <!-- Top Bar -->
+            <div class="battle-top-bar">
+                <div id="battle-stage-title" class="battle-title-indicator">Book 1 - Stage 1-1</div>
+                <div id="wave-progress-container" class="wave-progress-pills">
+                    <!-- Dynamic wave dots -->
+                </div>
+                <!-- Problem Timer (Parent configurable) -->
+                <div id="battle-timer-container" class="battle-timer-container" style="display: none;">
+                    <span class="timer-icon">⏱️</span>
+                    <span id="battle-timer-text">30s</span>
+                    <div class="timer-bar">
+                        <div id="battle-timer-fill" class="timer-bar-fill"></div>
+                    </div>
+                </div>
+                <button id="btn-battle-quit" class="btn-blue" style="padding: 4px 12px; font-size: 0.85rem;">
+                    MAP ✖
+                </button>
+            </div>
+
+            <!-- Theater Combat Stage -->
+            <div id="battle-theater" class="battle-theater">
+                <!-- Hero Pod (Left) -->
+                <div class="combatant-pod">
+                    <div class="combatant-name-plate">Sir Cedric</div>
+                    <div id="hero-hearts-row" class="hearts-row">
+                        <!-- Dynamic Hearts -->
+                    </div>
+                    <div class="combatant-sprite-box">
+                        <img id="hero-sprite-img" src="assets/sprites/hero_knight.jpg" alt="Hero Knight" class="sprite-img hero-idle">
+                    </div>
+                </div>
+
+                <!-- Middle Streak Banner -->
+                <div id="streak-banner" class="streak-banner" style="display: none;">
+                    <span>🔥</span> <span id="streak-count-text">Streak 3x (1.5x FLAME!)</span>
+                </div>
+
+                <!-- Floating Damage Numbers & Effects -->
+                <div id="battle-effects-layer" class="battle-effects-layer"></div>
+
+                <!-- Monster Pod (Right) -->
+                <div class="combatant-pod">
+                    <div id="monster-name-plate" class="combatant-name-plate">Slimey the Goo</div>
+                    <div id="monster-hearts-row" class="hearts-row">
+                        <!-- Dynamic Hearts -->
+                    </div>
+                    <div class="combatant-sprite-box">
+                        <img id="monster-sprite-img" src="assets/sprites/monster_slime.jpg" alt="Enemy Monster" class="sprite-img monster-idle">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Control Panel: Potions, Math Board, Keypad -->
+            <div class="battle-control-panel">
+                <!-- Left: Potions Tray -->
+                <div class="potion-tray">
+                    <div class="tray-title">Potions & Items</div>
+                    <button id="btn-potion-heal" class="potion-btn" title="Restores 2 Hearts">
+                        <span class="icon">❤️</span>
+                        <div class="info">
+                            <span class="name">Heal Potion</span>
+                            <span class="count" id="count-potion-heal">x3</span>
+                        </div>
+                    </button>
+                    <button id="btn-potion-power" class="potion-btn" title="Doubles next attack damage">
+                        <span class="icon">⚡</span>
+                        <div class="info">
+                            <span class="name">Power Tonic</span>
+                            <span class="count" id="count-potion-power">x2</span>
+                        </div>
+                    </button>
+                    <button id="btn-potion-shield" class="potion-btn" title="Blocks next incoming enemy attack">
+                        <span class="icon">🛡️</span>
+                        <div class="info">
+                            <span class="name">Aegis Shield</span>
+                            <span class="count" id="count-potion-shield">x2</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Center: Arithmetic Board with Individual Column Placeholders -->
+                <div class="arithmetic-board">
+                    <div class="column-problem-wrapper">
+                        <!-- Dynamic Column Math Grid (Carry Bubbles, Top Digits, Bottom Digits, Line, Placeholders) -->
+                        <div id="column-math-grid" class="column-math-grid">
+                            <!-- Injected dynamically via js/game.js -->
+                        </div>
+
+                        <!-- Action Controls: Scratchpad & Big Attack Button -->
+                        <div class="board-actions-row">
+                            <button id="btn-toggle-scratchpad" class="helper-chip" type="button">
+                                <span>✏️</span> Scratchpad
+                            </button>
+                            <button id="btn-key-attack" class="btn-attack-hero" type="button">
+                                ⚔️ ATTACK!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL: VICTORY & LOOT
+             ========================================================= -->
+        <div id="modal-victory" class="modal-overlay">
+            <div class="modal-card">
+                <h2>VICTORY!</h2>
+                <div id="victory-stars-display" class="star-rating-row">⭐⭐⭐</div>
+                <div class="loot-chest-icon">🎁</div>
+                <div class="loot-rewards-box">
+                    <div class="loot-item" id="victory-xp-text">+100 XP</div>
+                    <div class="loot-item" id="victory-gems-text">+3 Gems</div>
+                    <div class="loot-item">+1 ❤️ Potion</div>
+                </div>
+                <div id="victory-artifact-container" style="display: none; margin-bottom: 15px; color: var(--gold-1);">
+                    <div style="font-weight: 800; font-size: 1.1rem;" id="victory-artifact-name"></div>
+                    <div style="font-size: 0.85rem; color: #cbd5e1;" id="victory-artifact-desc"></div>
+                </div>
+                <button id="btn-victory-next" class="btn-gold" style="width: 100%;">
+                    CONTINUE ADVENTURE ➔
+                </button>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL: DEFEAT / RETRY
+             ========================================================= -->
+        <div id="modal-defeat" class="modal-overlay">
+            <div class="modal-card">
+                <h2 style="color: #ef4444;">OUT OF HEARTS!</h2>
+                <p style="margin: 15px 0; color: #cbd5e1; font-size: 1.1rem;">
+                    Don't give up, brave Knight! Take a breath and try again!
+                </p>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button id="btn-defeat-retry" class="btn-gold" style="flex: 1;">
+                        🔄 RETRY
+                    </button>
+                    <button id="btn-defeat-map" class="btn-blue" style="flex: 1;">
+                        🗺️ MAP
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL: SCRATCHPAD DOODLE CANVAS
+             ========================================================= -->
+        <div id="scratchpad-modal" class="modal-overlay">
+            <div class="modal-card">
+                <h2 style="font-size: 1.4rem;">✏️ Magic Scratchpad</h2>
+                <canvas id="scratchpad-canvas"></canvas>
+                <div class="scratchpad-tools">
+                    <button id="btn-clear-scratchpad" class="btn-blue" style="padding: 6px 14px; font-size: 0.85rem;">
+                        🧹 Clear Board
+                    </button>
+                    <button id="btn-close-scratchpad" class="btn-gold" style="padding: 6px 16px; font-size: 0.95rem;">
+                        Done ✔️
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL: PARENT SECURITY GATE (PASSWORD)
+             ========================================================= -->
+        <div id="modal-parent-gate" class="modal-overlay">
+            <div class="modal-card parent-gate-card">
+                <h2>🔒 Parent Security Gate</h2>
+                <p class="parent-gate-desc">Enter the parent passcode to access math & game difficulty controls.</p>
+                
+                <div class="parent-gate-input-box">
+                    <input type="password" id="parent-gate-password" placeholder="Passcode (Default: 1234)" maxlength="16" autocomplete="off">
+                    <div id="parent-gate-error" class="parent-gate-error"></div>
+                </div>
+
+                <div class="parent-gate-actions">
+                    <button id="btn-submit-parent-gate" class="btn-gold" type="button" style="flex: 1;">
+                        UNLOCK 🔓
+                    </button>
+                    <button id="btn-cancel-parent-gate" class="btn-blue" type="button" style="flex: 1;">
+                        CANCEL
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             MODAL: PARENT DASHBOARD & GAME SETTINGS
+             ========================================================= -->
+        <div id="modal-settings" class="modal-overlay">
+            <div class="modal-card parent-dashboard-card">
+                <h2>⚙️ Parent Controls & Settings</h2>
+                <p class="dashboard-subtitle">Configure exact math stages, digits, combat rules, and curriculum</p>
+
+                <!-- Navigation Tabs -->
+                <div class="parent-nav-tabs">
+                    <button class="parent-tab-btn active" data-tab="tab-stage-digits" type="button">
+                        🔢 Stage & Digits
+                    </button>
+                    <button class="parent-tab-btn" data-tab="tab-combat-rules" type="button">
+                        ⚔️ Rules & Difficulty
+                    </button>
+                    <button class="parent-tab-btn" data-tab="tab-progress-security" type="button">
+                        🛡️ Progress & Security
+                    </button>
+                </div>
+
+                <!-- Tab 1: Stage & Digits Customizer -->
+                <div id="tab-stage-digits" class="parent-tab-pane active">
+                    <div class="settings-group">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Global Digits Override:</span>
+                                <span class="setting-hint">Applies to all stages unless overridden below</span>
+                            </div>
+                            <select id="select-global-digits" class="setting-select">
+                                <option value="auto">Auto (Stage Defaults)</option>
+                                <option value="1">Force 1-Digit Problems</option>
+                                <option value="2">Force 2-Digit Problems</option>
+                                <option value="3">Force 3-Digit Problems</option>
+                                <option value="4">Force 4-Digit Problems</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="stages-config-header">
+                        <h3>Stage-by-Stage Custom Digit Counts</h3>
+                        <div class="quick-preset-btns">
+                            <button id="btn-preset-all-1" type="button" class="btn-chip">All 1-Digit</button>
+                            <button id="btn-preset-all-2" type="button" class="btn-chip">All 2-Digit</button>
+                            <button id="btn-preset-all-3" type="button" class="btn-chip">All 3-Digit</button>
+                            <button id="btn-preset-reset" type="button" class="btn-chip">Reset to Defaults</button>
+                        </div>
+                    </div>
+
+                    <div id="stage-digits-customizer-container" class="stage-digits-scroll-list">
+                        <!-- Dynamic stage digit selectors populated via js/game.js -->
+                    </div>
+                </div>
+
+                <!-- Tab 2: Rules & Difficulty -->
+                <div id="tab-combat-rules" class="parent-tab-pane">
+                    <div class="settings-group">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Hero Starting Hearts:</span>
+                                <span class="setting-hint">How much health the student starts each battle with</span>
+                            </div>
+                            <select id="select-hero-hp" class="setting-select">
+                                <option value="3">3 Hearts (Challenging)</option>
+                                <option value="5" selected>5 Hearts (Standard)</option>
+                                <option value="8">8 Hearts (Generous)</option>
+                                <option value="10">10 Hearts (High Health)</option>
+                                <option value="99">Invincible / Practice Mode (99 HP)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Monster Attack Damage:</span>
+                                <span class="setting-hint">Damage dealt to player when answering incorrectly</span>
+                            </div>
+                            <select id="select-monster-dmg" class="setting-select">
+                                <option value="0">0x Safe Practice (No Damage on wrong answer)</option>
+                                <option value="1" selected>1x Standard Damage</option>
+                                <option value="2">2x Hardcore (2x Monster Damage)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Monster Health / Problem Count:</span>
+                                <span class="setting-hint">Scales monster HP to require fewer or more problems</span>
+                            </div>
+                            <select id="select-monster-hp-scale" class="setting-select">
+                                <option value="0.5">0.5x Quick Battles (Fewer Problems)</option>
+                                <option value="1.0" selected>1.0x Standard Battle Length</option>
+                                <option value="1.5">1.5x Thorough Practice (More Problems)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Per-Problem Timer:</span>
+                                <span class="setting-hint">Encourages fast mental math calculation</span>
+                            </div>
+                            <select id="select-problem-timer" class="setting-select">
+                                <option value="0" selected>No Timer (Relaxed & Untimed)</option>
+                                <option value="60">60 Seconds</option>
+                                <option value="45">45 Seconds</option>
+                                <option value="30">30 Seconds (Focus Challenge)</option>
+                                <option value="15">15 Seconds (Speed Math)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Unlimited Potions Mode:</span>
+                                <span class="setting-hint">Potions never run out during practice</span>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="check-unlimited-potions">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Progress & Security -->
+                <div id="tab-progress-security" class="parent-tab-pane">
+                    <div class="settings-group">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Sound & Combat Effects:</span>
+                                <span class="setting-hint">Enable/disable audio effects</span>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="check-sound-enabled" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Change Parent Passcode:</span>
+                                <span class="setting-hint">Update the security passcode for this screen</span>
+                            </div>
+                            <input type="password" id="input-new-passcode" class="setting-input-text" placeholder="New Passcode" maxlength="16">
+                        </div>
+
+                        <div class="management-buttons-grid">
+                            <button id="btn-unlock-all-stages" type="button" class="btn-action-gold">
+                                🌟 Unlock All Books & Stages
+                            </button>
+                            <button id="btn-refill-inventory" type="button" class="btn-action-gold">
+                                🧪 Refill All Potions & +50 Gems
+                            </button>
+                            <button id="btn-reset-game-progress" type="button" class="btn-action-danger">
+                                ⚠️ Reset All Player Progress
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="parent-modal-bottom-actions">
+                    <button id="btn-save-settings" class="btn-gold" style="flex: 1;">
+                        💾 SAVE & APPLY SETTINGS
+                    </button>
+                    <button id="btn-close-settings" class="btn-blue" style="flex: 1;">
+                        CLOSE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Scripts -->
+    <script src="js/audio.js"></script>
+    <script src="js/mathEngine.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
