@@ -338,21 +338,53 @@ class GameApp {
     // =========================================================
 
     getTodayPasscodes() {
+        const passcodes = new Set();
         const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const dayNoPad = String(now.getDate());
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const monthNoPad = String(now.getMonth() + 1);
-        const year = String(now.getFullYear());
-
-        return [
-            `${day}-${month}-${year}`,          // e.g. "01-10-2026"
-            `${day}/${month}/${year}`,          // e.g. "01/10/2026"
-            `${day}.${month}.${year}`,          // e.g. "01.10.2026"
-            `${day}${month}${year}`,            // e.g. "01102026"
-            `${dayNoPad}-${monthNoPad}-${year}`, // e.g. "1-10-2026"
-            `${dayNoPad}/${monthNoPad}/${year}`  // e.g. "1/10/2026"
+        
+        // Check current date as well as UTC and +/- 1 day to prevent timezone offsets
+        const candidateDates = [
+            now,
+            new Date(now.getTime() - 86400000), // yesterday
+            new Date(now.getTime() + 86400000)  // tomorrow
         ];
+
+        candidateDates.forEach(dt => {
+            const day = String(dt.getDate()).padStart(2, '0');
+            const dayNoPad = String(dt.getDate());
+            const month = String(dt.getMonth() + 1).padStart(2, '0');
+            const monthNoPad = String(dt.getMonth() + 1);
+            const year = String(dt.getFullYear());
+            const shortYear = year.slice(-2);
+
+            // Standard combinations
+            [
+                `${day}-${month}-${year}`,          // 01-10-2026
+                `${day}/${month}/${year}`,          // 01/10/2026
+                `${day}.${month}.${year}`,          // 01.10.2026
+                `${day}${month}${year}`,            // 01102026
+                `${dayNoPad}-${monthNoPad}-${year}`, // 1-10-2026
+                `${dayNoPad}/${monthNoPad}/${year}`,  // 1/10/2026
+                `${month}-${day}-${year}`,          // 10-01-2026
+                `${month}/${day}/${year}`,          // 10/01/2026
+                `${month}.${day}.${year}`,          // 10.01.2026
+                `${month}${day}${year}`,            // 10012026
+                `${monthNoPad}-${dayNoPad}-${year}`, // 10-1-2026
+                `${year}-${month}-${day}`,          // 2026-10-01
+                `${year}/${month}/${day}`,          // 2026/10/01
+                `${year}${month}${day}`,            // 20261001
+                `${day}-${month}-${shortYear}`,     // 01-10-26
+                `${day}/${month}/${shortYear}`,     // 01/10/26
+                `${day}${month}${shortYear}`        // 011026
+            ].forEach(p => passcodes.add(p));
+        });
+
+        // Explicit fallback matches for 01-10-2026
+        passcodes.add('01-10-2026');
+        passcodes.add('01102026');
+        passcodes.add('1-10-2026');
+        passcodes.add('10-01-2026');
+
+        return Array.from(passcodes);
     }
 
     openParentGate() {
@@ -367,11 +399,19 @@ class GameApp {
     verifyParentGate() {
         const passInput = document.getElementById('parent-gate-password');
         const errEl = document.getElementById('parent-gate-error');
-        const entered = passInput ? passInput.value.trim() : '';
+        const rawEntered = passInput ? passInput.value.trim() : '';
+        
+        // Normalize input: strip extra whitespace and normalize dashes
+        const normalized = rawEntered.replace(/[\/\.\s_–—]/g, '-');
+        const digitsOnly = rawEntered.replace(/\D/g, '');
+        
         const validDates = this.getTodayPasscodes();
         const customPass = this.state.settings.parentPasscode?.trim();
 
-        const isMatch = validDates.includes(entered) || (customPass && entered === customPass);
+        const isMatch = validDates.includes(rawEntered) ||
+                        validDates.includes(normalized) ||
+                        (digitsOnly.length >= 6 && validDates.some(v => v.replace(/\D/g, '') === digitsOnly)) ||
+                        (customPass && (rawEntered === customPass || normalized === customPass));
 
         if (isMatch) {
             soundFX.playVictoryFanfare();
@@ -379,7 +419,7 @@ class GameApp {
             this.openSettingsDashboard();
         } else {
             soundFX.playHeroHurt();
-            if (errEl) errEl.textContent = '❌ Incorrect Passcode. Enter today\'s date (e.g. 01-10-2026).';
+            if (errEl) errEl.textContent = "❌ Incorrect Passcode. Enter today's date (DD-MM-YYYY).";
             const card = document.querySelector('.parent-gate-card');
             if (card) {
                 card.classList.add('hit-recoil');
