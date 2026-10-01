@@ -58,7 +58,7 @@ class GameApp {
                     unlockedArtifacts: parsed.unlockedArtifacts || [],
                     stageDigitOverrides: parsed.stageDigitOverrides || {},
                     settings: {
-                        parentPasscode: parsed.settings?.parentPasscode || '1234',
+                        parentPasscode: parsed.settings?.parentPasscode || '',
                         digitsOverride: parsed.settings?.digitsOverride || 'auto', // 'auto', 1, 2, 3, 4
                         heroHpSetting: parsed.settings?.heroHpSetting || '5', // 3, 5, 8, 10, 99
                         monsterDmgMultiplier: parsed.settings?.monsterDmgMultiplier ?? 1, // 0, 1, 2
@@ -86,7 +86,7 @@ class GameApp {
             unlockedArtifacts: [],
             stageDigitOverrides: {},
             settings: {
-                parentPasscode: '1234',
+                parentPasscode: '',
                 digitsOverride: 'auto',
                 heroHpSetting: '5',
                 monsterDmgMultiplier: 1,
@@ -337,6 +337,24 @@ class GameApp {
     // PARENT SECURITY GATE & DASHBOARD
     // =========================================================
 
+    getTodayPasscodes() {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const dayNoPad = String(now.getDate());
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const monthNoPad = String(now.getMonth() + 1);
+        const year = String(now.getFullYear());
+
+        return [
+            `${day}-${month}-${year}`,          // e.g. "01-10-2026"
+            `${day}/${month}/${year}`,          // e.g. "01/10/2026"
+            `${day}.${month}.${year}`,          // e.g. "01.10.2026"
+            `${day}${month}${year}`,            // e.g. "01102026"
+            `${dayNoPad}-${monthNoPad}-${year}`, // e.g. "1-10-2026"
+            `${dayNoPad}/${monthNoPad}/${year}`  // e.g. "1/10/2026"
+        ];
+    }
+
     openParentGate() {
         const passInput = document.getElementById('parent-gate-password');
         const errEl = document.getElementById('parent-gate-error');
@@ -350,15 +368,18 @@ class GameApp {
         const passInput = document.getElementById('parent-gate-password');
         const errEl = document.getElementById('parent-gate-error');
         const entered = passInput ? passInput.value.trim() : '';
-        const correct = this.state.settings.parentPasscode || '1234';
+        const validDates = this.getTodayPasscodes();
+        const customPass = this.state.settings.parentPasscode?.trim();
 
-        if (entered === correct || entered === '1234' || entered === 'parent') {
+        const isMatch = validDates.includes(entered) || (customPass && entered === customPass);
+
+        if (isMatch) {
             soundFX.playVictoryFanfare();
             this.modals.parentGate.classList.remove('active');
             this.openSettingsDashboard();
         } else {
             soundFX.playHeroHurt();
-            if (errEl) errEl.textContent = '❌ Incorrect Passcode. Please try again.';
+            if (errEl) errEl.textContent = '❌ Incorrect Passcode. Enter today\'s date (e.g. 01-10-2026).';
             const card = document.querySelector('.parent-gate-card');
             if (card) {
                 card.classList.add('hit-recoil');
@@ -377,7 +398,7 @@ class GameApp {
         document.getElementById('select-problem-timer').value = String(this.state.settings.problemTimer ?? 0);
         document.getElementById('check-unlimited-potions').checked = !!this.state.settings.unlimitedPotions;
         document.getElementById('check-sound-enabled').checked = this.state.settings.soundEnabled !== false;
-        document.getElementById('input-new-passcode').value = this.state.settings.parentPasscode || '1234';
+        document.getElementById('input-new-passcode').value = this.state.settings.parentPasscode || '';
 
         // Render Stage-by-Stage Customizers
         this.renderStageDigitCustomizers();
@@ -515,7 +536,7 @@ class GameApp {
                 unlockedArtifacts: [],
                 stageDigitOverrides: {},
                 settings: {
-                    parentPasscode: currentPass || '1234',
+                    parentPasscode: currentPass || '',
                     digitsOverride: 'auto',
                     heroHpSetting: '5',
                     monsterDmgMultiplier: 1,
