@@ -245,6 +245,149 @@ body {
     padding-bottom: 20px;
 }
 
+/* =========================================================
+   WORLD SELECTION SCREEN (Addition vs Subtraction)
+   ========================================================= */
+
+#screen-world-select {
+    flex-direction: column;
+    padding: 18px 24px;
+    height: 100%;
+    overflow-y: auto;
+    background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0b0f19 100%);
+}
+
+.world-select-banner {
+    text-align: center;
+    margin: 8px 0 16px 0;
+}
+
+.world-select-banner h2 {
+    font-size: 2rem;
+    color: var(--gold-1);
+    text-shadow: 2px 2px 0 #78350f, 0 0 20px rgba(234, 179, 8, 0.5);
+    margin-bottom: 4px;
+}
+
+.world-select-banner p {
+    color: #cbd5e1;
+    font-size: 0.95rem;
+}
+
+.worlds-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 840px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .worlds-selection-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.world-card {
+    background: #0f172a;
+    border: 3px solid var(--gold-2);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.world-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: var(--gold-1);
+    box-shadow: 0 16px 36px rgba(234, 179, 8, 0.35);
+}
+
+.world-card.subtraction-world:hover {
+    border-color: #f43f5e;
+    box-shadow: 0 16px 36px rgba(244, 63, 94, 0.35);
+}
+
+.world-card-cover {
+    height: 140px;
+    width: 100%;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+}
+
+.world-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.world-stars-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid var(--gold-1);
+    color: var(--gold-1);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.world-card-info {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.world-card-info h3 {
+    font-size: 1.35rem;
+    color: #f8fafc;
+    margin-bottom: 4px;
+}
+
+.world-subtitle {
+    color: var(--gold-2);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.world-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    line-height: 1.35;
+    margin-bottom: 14px;
+    flex: 1;
+}
+
+.stages-progression-track {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.single-world-card {
+    max-width: 700px;
+    margin: 0 auto;
+    width: 100%;
+}
+
 .book-card {
     background: #1e293b;
     border: 3px solid #475569;
@@ -887,7 +1030,7 @@ body {
     visibility: hidden;
 }
 
-/* Digits in Columns */
+/* Digits in Columns with '1' Prefix Borrowing */
 .digit-cell-value {
     font-size: 3.4rem;
     font-weight: 800;
@@ -900,41 +1043,82 @@ body {
     position: relative;
 }
 
+/* Borrowing '1' Prefix Notation */
+.borrow-prefix-one {
+    display: none;
+    color: #f43f5e;
+    font-size: 0.8em;
+    font-weight: 900;
+    margin-right: -4px;
+    text-shadow: 0 0 10px rgba(244, 63, 94, 0.8);
+    animation: prefixSlideIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.borrow-prefix-one.active {
+    display: inline-block;
+}
+
+.digit-main {
+    display: inline-block;
+}
+
 .digit-cell-value.borrow-strikeable {
     cursor: pointer;
     border-radius: 8px;
-    padding: 0 4px;
+    padding: 0 6px;
     transition: all 0.2s ease;
 }
 
 .digit-cell-value.borrow-strikeable:hover {
     background: rgba(244, 63, 94, 0.2);
-    box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
 }
 
 .digit-cell-value.borrow-struck {
-    color: #94a3b8;
-    text-decoration: line-through;
+    color: #64748b !important;
+}
+
+.digit-cell-value.borrow-struck .digit-main {
+    position: relative;
+}
+
+.digit-cell-value.borrow-struck .digit-main::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -10%;
+    width: 120%;
+    height: 4px;
+    background: #ef4444;
+    transform: translateY(-50%) rotate(-45deg);
+    border-radius: 2px;
+    box-shadow: 0 0 8px #ef4444;
 }
 
 .digit-cell-value.borrow-struck::after {
     content: attr(data-reduced);
     position: absolute;
-    top: -18px;
-    right: 4px;
-    font-size: 1.6rem;
-    color: #f43f5e;
+    top: -20px;
+    right: 2px;
+    font-size: 1.5rem;
+    color: #fca5a5;
     font-weight: 800;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid #ef4444;
+    padding: 1px 6px;
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
 
-.digit-cell-value.borrow-receiver.regrouped::before {
-    content: "+10";
-    position: absolute;
-    top: -18px;
-    right: 0px;
-    font-size: 1.2rem;
-    color: #38bdf8;
-    font-weight: 800;
+@keyframes prefixSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-8px) scale(0.6);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
 }
 
 /* Math Divider Line */

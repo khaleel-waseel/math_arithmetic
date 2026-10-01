@@ -2,10 +2,11 @@
 
 class GameApp {
     constructor() {
-        this.saveKey = 'math_knight_adventures_save_v2';
+        this.saveKey = 'math_knight_adventures_save_v3';
         this.state = this.loadState();
 
-        // Runtime Battle State
+        // Runtime Battle & Navigation State
+        this.selectedWorldId = 'world_addition';
         this.currentBook = null;
         this.currentStage = null;
         this.currentWaveIndex = 0;
@@ -34,6 +35,7 @@ class GameApp {
 
         this.initDOM();
         this.bindEvents();
+        this.updateWorldSelectUI();
         this.updateMapUI();
     }
 
@@ -43,9 +45,8 @@ class GameApp {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // Merge defaults to ensure backwards compatibility
                 return {
-                    unlockedBooks: parsed.unlockedBooks || ['book_1'],
+                    unlockedBooks: parsed.unlockedBooks || ['world_addition', 'world_subtraction'],
                     completedStages: parsed.completedStages || {},
                     xp: parsed.xp || 0,
                     level: parsed.level || 1,
@@ -73,7 +74,7 @@ class GameApp {
             }
         }
         return {
-            unlockedBooks: ['book_1'],
+            unlockedBooks: ['world_addition', 'world_subtraction'],
             completedStages: {},
             xp: 0,
             level: 1,
@@ -106,6 +107,7 @@ class GameApp {
         // Screens
         this.screens = {
             title: document.getElementById('screen-title'),
+            worldSelect: document.getElementById('screen-world-select'),
             map: document.getElementById('screen-map'),
             battle: document.getElementById('screen-battle')
         };
@@ -163,10 +165,10 @@ class GameApp {
     }
 
     bindEvents() {
-        // Title Screen buttons
+        // Title Screen: START ADVENTURE -> Choose World
         document.getElementById('btn-start-game')?.addEventListener('click', () => {
             soundFX.playButtonClick();
-            this.showScreen('map');
+            this.showWorldSelect();
         });
 
         // Parent Gate Trigger
@@ -191,10 +193,24 @@ class GameApp {
             this.modals.parentGate.classList.remove('active');
         });
 
-        // Navigation
-        document.getElementById('btn-back-to-title')?.addEventListener('click', () => {
+        // World Select Screen Navigation
+        document.getElementById('btn-world-back-to-title')?.addEventListener('click', () => {
             soundFX.playButtonClick();
             this.showScreen('title');
+        });
+
+        document.querySelectorAll('.btn-enter-world').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                soundFX.playButtonClick();
+                const worldId = e.currentTarget.getAttribute('data-world');
+                this.selectWorld(worldId);
+            });
+        });
+
+        // Stage Map Screen Navigation
+        document.getElementById('btn-back-to-worlds')?.addEventListener('click', () => {
+            soundFX.playButtonClick();
+            this.showWorldSelect();
         });
 
         document.getElementById('btn-battle-quit')?.addEventListener('click', () => {
@@ -271,6 +287,7 @@ class GameApp {
             this.modals.victory.classList.remove('active');
             this.showScreen('map');
             this.updateMapUI();
+            this.updateWorldSelectUI();
         });
 
         document.getElementById('btn-defeat-retry')?.addEventListener('click', () => {
@@ -318,6 +335,7 @@ class GameApp {
             this.saveSettingsFromForm();
             this.modals.settings.classList.remove('active');
             this.updateMapUI();
+            this.updateWorldSelectUI();
         });
 
         document.getElementById('btn-close-settings')?.addEventListener('click', () => {
@@ -333,6 +351,42 @@ class GameApp {
         });
     }
 
+    showWorldSelect() {
+        this.updateWorldSelectUI();
+        this.showScreen('worldSelect');
+    }
+
+    selectWorld(worldId) {
+        this.selectedWorldId = worldId;
+        const world = GAME_DATA.books.find(b => b.id === worldId) || GAME_DATA.books[0];
+        const titleBadge = document.getElementById('map-world-title-badge');
+        if (titleBadge) {
+            titleBadge.textContent = `${world.icon} ${world.title}`;
+        }
+        this.updateMapUI();
+        this.showScreen('map');
+    }
+
+    updateWorldSelectUI() {
+        // Update stats
+        const gemEl = document.getElementById('stat-world-star-gems');
+        const lvlEl = document.getElementById('stat-world-player-level');
+        if (gemEl) gemEl.textContent = this.state.starGems;
+        if (lvlEl) lvlEl.textContent = `Lv. ${this.state.level}`;
+
+        // Calculate stars per world
+        GAME_DATA.books.forEach(world => {
+            let totalStars = 0;
+            world.stages.forEach(s => {
+                totalStars += this.state.completedStages[s.id]?.stars || 0;
+            });
+            const starBadge = document.getElementById(world.id === 'world_addition' ? 'addition-world-stars' : 'subtraction-world-stars');
+            if (starBadge) {
+                starBadge.textContent = `⭐ ${totalStars}/${world.stages.length * 3 + 2} Stars`;
+            }
+        });
+    }
+
     // =========================================================
     // PARENT SECURITY GATE & DASHBOARD
     // =========================================================
@@ -341,7 +395,7 @@ class GameApp {
         const passcodes = new Set();
         const now = new Date();
         
-        // Check current date as well as UTC and +/- 1 day to prevent timezone offsets
+        // Candidate dates for timezone robustness
         const candidateDates = [
             now,
             new Date(now.getTime() - 86400000), // yesterday
@@ -356,7 +410,6 @@ class GameApp {
             const year = String(dt.getFullYear());
             const shortYear = year.slice(-2);
 
-            // Standard combinations
             [
                 `${day}-${month}-${year}`,          // 01-10-2026
                 `${day}/${month}/${year}`,          // 01/10/2026
@@ -401,7 +454,7 @@ class GameApp {
         const errEl = document.getElementById('parent-gate-error');
         const rawEntered = passInput ? passInput.value.trim() : '';
         
-        // Normalize input: strip extra whitespace and normalize dashes
+        // Normalize input
         const normalized = rawEntered.replace(/[\/\.\s_–—]/g, '-');
         const digitsOnly = rawEntered.replace(/\D/g, '');
         
@@ -462,20 +515,20 @@ class GameApp {
         if (!container) return;
         container.innerHTML = '';
 
-        GAME_DATA.books.forEach(book => {
-            const bookCard = document.createElement('div');
-            bookCard.className = 'book-setting-accordion-group';
-            bookCard.innerHTML = `
+        GAME_DATA.books.forEach(world => {
+            const worldGroup = document.createElement('div');
+            worldGroup.className = 'book-setting-accordion-group';
+            worldGroup.innerHTML = `
                 <div class="book-setting-header">
-                    <h4>${book.title}</h4>
-                    <span class="book-setting-sub">${book.subtitle}</span>
+                    <h4>${world.icon} ${world.title}</h4>
+                    <span class="book-setting-sub">${world.subtitle}</span>
                 </div>
-                <div class="stages-setting-grid" id="book-stages-grid-${book.id}"></div>
+                <div class="stages-setting-grid" id="world-stages-grid-${world.id}"></div>
             `;
-            container.appendChild(bookCard);
+            container.appendChild(worldGroup);
 
-            const grid = bookCard.querySelector(`#book-stages-grid-${book.id}`);
-            book.stages.forEach(stage => {
+            const grid = worldGroup.querySelector(`#world-stages-grid-${world.id}`);
+            world.stages.forEach(stage => {
                 const currentVal = this.state.stageDigitOverrides[stage.id] || 'default';
                 const row = document.createElement('div');
                 row.className = 'stage-setting-item';
@@ -483,7 +536,7 @@ class GameApp {
                     <div class="stage-setting-meta">
                         <span class="stage-num">${stage.number}</span>
                         <span class="stage-name">${stage.name}</span>
-                        <span class="stage-default-tag">(Default: ${stage.digits} Digits)</span>
+                        <span class="stage-default-tag">(Default: ${stage.digits}D &bull; ${stage.operationType.includes('no_') ? 'No Regroup' : 'With Regroup'})</span>
                     </div>
                     <select class="stage-digit-select setting-select" data-stage-id="${stage.id}">
                         <option value="default" ${currentVal === 'default' ? 'selected' : ''}>Default (${stage.digits}D)</option>
@@ -534,11 +587,11 @@ class GameApp {
     }
 
     unlockAllStages() {
-        GAME_DATA.books.forEach(b => {
-            if (!this.state.unlockedBooks.includes(b.id)) {
-                this.state.unlockedBooks.push(b.id);
+        GAME_DATA.books.forEach(w => {
+            if (!this.state.unlockedBooks.includes(w.id)) {
+                this.state.unlockedBooks.push(w.id);
             }
-            b.stages.forEach(s => {
+            w.stages.forEach(s => {
                 if (!this.state.completedStages[s.id]) {
                     this.state.completedStages[s.id] = { stars: 3, score: 200 };
                 }
@@ -548,8 +601,9 @@ class GameApp {
         this.state.starGems = 100;
         this.saveState();
         soundFX.playVictoryFanfare();
-        alert('🌟 All Books & Stages have been unlocked!');
+        alert('🌟 All Addition & Subtraction Stages have been unlocked!');
         this.updateMapUI();
+        this.updateWorldSelectUI();
     }
 
     refillInventory() {
@@ -561,13 +615,14 @@ class GameApp {
         soundFX.playChestOpen();
         alert('🧪 Potions and Star Gems have been refilled!');
         this.updateMapUI();
+        this.updateWorldSelectUI();
     }
 
     resetGameProgress() {
         if (confirm('⚠️ Are you sure you want to reset ALL game progress? This will lock all stages and clear stats.')) {
             const currentPass = this.state.settings.parentPasscode;
             this.state = {
-                unlockedBooks: ['book_1'],
+                unlockedBooks: ['world_addition', 'world_subtraction'],
                 completedStages: {},
                 xp: 0,
                 level: 1,
@@ -590,6 +645,7 @@ class GameApp {
             soundFX.playDefeatSound();
             alert('Game progress has been reset.');
             this.updateMapUI();
+            this.updateWorldSelectUI();
             this.modals.settings.classList.remove('active');
         }
     }
@@ -607,61 +663,61 @@ class GameApp {
         document.getElementById('stat-star-gems').textContent = this.state.starGems;
         document.getElementById('stat-player-level').textContent = `Lv. ${this.state.level}`;
 
-        GAME_DATA.books.forEach((book) => {
-            const isUnlocked = this.state.unlockedBooks.includes(book.id);
-            const bookCard = document.createElement('div');
-            bookCard.className = `book-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+        // Get currently selected world
+        const world = GAME_DATA.books.find(b => b.id === this.selectedWorldId) || GAME_DATA.books[0];
 
-            let completedCount = 0;
-            let totalStars = 0;
-            book.stages.forEach(s => {
-                if (this.state.completedStages[s.id]) {
-                    completedCount++;
-                    totalStars += this.state.completedStages[s.id].stars || 0;
-                }
-            });
+        let completedCount = 0;
+        let totalStars = 0;
+        world.stages.forEach(s => {
+            if (this.state.completedStages[s.id]) {
+                completedCount++;
+                totalStars += this.state.completedStages[s.id].stars || 0;
+            }
+        });
 
-            bookCard.innerHTML = `
-                <div class="book-card-cover" style="background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.8)), url('${book.bgImage}')">
-                    <div class="book-card-badge">${isUnlocked ? `⭐ ${totalStars} Stars` : '🔒 Locked'}</div>
-                </div>
-                <div class="book-card-info">
-                    <h3>${book.title}</h3>
-                    <div class="subtitle">${book.subtitle}</div>
-                    <p>${book.description}</p>
-                    <div class="stages-list" id="stages-list-${book.id}"></div>
-                </div>
-            `;
+        const worldCard = document.createElement('div');
+        worldCard.className = 'book-card unlocked single-world-card';
 
-            booksContainer.appendChild(bookCard);
+        worldCard.innerHTML = `
+            <div class="book-card-cover" style="background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.85)), url('${world.bgImage}')">
+                <div class="book-card-badge">⭐ ${totalStars} Stars &bull; ${completedCount}/${world.stages.length} Stages Cleared</div>
+            </div>
+            <div class="book-card-info">
+                <h3>${world.icon} ${world.title}</h3>
+                <div class="subtitle">${world.subtitle}</div>
+                <p>${world.description}</p>
+                <div class="stages-progression-track" id="stages-track-${world.id}"></div>
+            </div>
+        `;
 
-            // Populate Stage Buttons
-            const stagesList = bookCard.querySelector(`#stages-list-${book.id}`);
-            book.stages.forEach((stage, sIdx) => {
-                const isStageCompleted = !!this.state.completedStages[stage.id];
-                const isStageUnlocked = isUnlocked && (sIdx === 0 || !!this.state.completedStages[book.stages[sIdx - 1].id]);
+        booksContainer.appendChild(worldCard);
 
-                const dot = document.createElement('div');
-                dot.className = `stage-dot ${isStageCompleted ? 'completed' : ''} ${stage.isBoss ? 'boss' : ''}`;
-                dot.textContent = stage.number.replace(' (BOSS)', '').replace(' (FINAL BOSS)', '');
-                
-                // Show digit count in title tooltip
-                const activeDigits = this.getEffectiveDigitsForStage(stage);
-                dot.title = `${stage.name} (${activeDigits} Digits - ${stage.operationType})`;
+        // Populate Stage Buttons
+        const stagesTrack = worldCard.querySelector(`#stages-track-${world.id}`);
+        world.stages.forEach((stage, sIdx) => {
+            const isStageCompleted = !!this.state.completedStages[stage.id];
+            // Stage 1 is always unlocked, otherwise unlocked if previous stage completed
+            const isStageUnlocked = sIdx === 0 || !!this.state.completedStages[world.stages[sIdx - 1].id];
 
-                if (isStageUnlocked) {
-                    dot.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        soundFX.playButtonClick();
-                        this.startStage(book, stage);
-                    });
-                } else {
-                    dot.style.opacity = '0.35';
-                    dot.style.cursor = 'not-allowed';
-                }
+            const dot = document.createElement('div');
+            dot.className = `stage-dot ${isStageCompleted ? 'completed' : ''} ${stage.isBoss ? 'boss' : ''}`;
+            dot.textContent = stage.number.replace(' (BOSS)', '').replace(' (FINAL BOSS)', '');
+            
+            const activeDigits = this.getEffectiveDigitsForStage(stage);
+            dot.title = `${stage.name} (${activeDigits} Digits - ${stage.operationType})`;
 
-                stagesList.appendChild(dot);
-            });
+            if (isStageUnlocked) {
+                dot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    soundFX.playButtonClick();
+                    this.startStage(world, stage);
+                });
+            } else {
+                dot.style.opacity = '0.35';
+                dot.style.cursor = 'not-allowed';
+            }
+
+            stagesTrack.appendChild(dot);
         });
     }
 
@@ -702,8 +758,12 @@ class GameApp {
         this.heroHp = this.heroMaxHp;
 
         // Update Theater background
-        this.battleElements.theater.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%), url('${book.bgImage}')`;
-        this.battleElements.titleIndicator.textContent = `${book.title.split(':')[0]} - Stage ${stage.number}`;
+        const stageBg = stage.number.startsWith('1-3') || stage.number.startsWith('1-4') || stage.number.startsWith('1-5') 
+            ? (book.bgSkyImage || book.bgImage) 
+            : book.bgImage;
+
+        this.battleElements.theater.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%), url('${stageBg}')`;
+        this.battleElements.titleIndicator.textContent = `${book.title} - Stage ${stage.number}`;
 
         this.showScreen('battle');
         this.loadWave(0);
@@ -854,7 +914,7 @@ class GameApp {
     }
 
     // =========================================================
-    // ARITHMETIC BOARD & INTERACTION
+    // ARITHMETIC BOARD & BORROWING NOTATION
     // =========================================================
 
     nextMathQuestion() {
@@ -913,7 +973,7 @@ class GameApp {
         }
         grid.appendChild(carryRow);
 
-        // 2. TOP DIGITS ROW
+        // 2. TOP DIGITS ROW (With '1' prefix borrowing notation)
         const topDigitsRow = document.createElement('div');
         topDigitsRow.className = 'grid-digits-row';
         topDigitsRow.id = 'grid-top-digits-row';
@@ -929,7 +989,12 @@ class GameApp {
             const span = document.createElement('span');
             span.className = 'digit-cell-value';
             span.id = `top-digit-col-${col}`;
-            span.textContent = digitVal;
+
+            // Inner HTML with borrow-prefix-one ('1' placed before digit)
+            span.innerHTML = `
+                <span class="borrow-prefix-one" id="borrow-prefix-${col}">1</span>
+                <span class="digit-main" id="digit-main-${col}">${digitVal}</span>
+            `;
 
             // In Subtraction, allow child to strike higher columns to borrow 1
             if (prob.operator === '-' && col > 0 && digitVal && parseInt(digitVal, 10) > 0) {
@@ -943,10 +1008,10 @@ class GameApp {
                     span.classList.toggle('borrow-struck');
                     this.borrowStates[col] = span.classList.contains('borrow-struck');
 
-                    const rightColEl = document.getElementById(`top-digit-col-${col - 1}`);
-                    if (rightColEl) {
-                        rightColEl.classList.toggle('borrow-receiver', this.borrowStates[col]);
-                        rightColEl.classList.toggle('regrouped', this.borrowStates[col]);
+                    // Toggle the '1' prefix on the column to the immediate right
+                    const prefixRight = document.getElementById(`borrow-prefix-${col - 1}`);
+                    if (prefixRight) {
+                        prefixRight.classList.toggle('active', this.borrowStates[col]);
                     }
                 });
             }
@@ -1262,19 +1327,9 @@ class GameApp {
             score: xpEarned
         };
 
-        // Unlock next book if this was boss
-        if (this.currentStage.isBoss) {
-            const nextBookIndex = GAME_DATA.books.findIndex(b => b.id === this.currentBook.id) + 1;
-            if (nextBookIndex < GAME_DATA.books.length) {
-                const nextBookId = GAME_DATA.books[nextBookIndex].id;
-                if (!this.state.unlockedBooks.includes(nextBookId)) {
-                    this.state.unlockedBooks.push(nextBookId);
-                }
-            }
-            if (this.currentStage.artifactUnlock) {
-                if (!this.state.unlockedArtifacts.includes(this.currentStage.artifactUnlock.name)) {
-                    this.state.unlockedArtifacts.push(this.currentStage.artifactUnlock.name);
-                }
+        if (this.currentStage.artifactUnlock) {
+            if (!this.state.unlockedArtifacts.includes(this.currentStage.artifactUnlock.name)) {
+                this.state.unlockedArtifacts.push(this.currentStage.artifactUnlock.name);
             }
         }
 
